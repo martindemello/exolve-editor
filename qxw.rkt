@@ -2,7 +2,7 @@
 
 (require "xword.rkt")
 
-(provide parse-file)
+(provide (prefix-out qxw: parse-file))
 
 (define (parse-list lines)
   (let* [(xw #f)
