@@ -17,7 +17,6 @@
         [_ #f]))
     xw))
 
-
 (define (parse-list-v5 lines)
   (let [(xw #f)]
     (for [(line lines)]
@@ -38,4 +37,5 @@
   (let [(lines (file->lines f))]
     (match (first (string-split (first lines)))
       ["#QXW2v3" (parse-list-v3 lines)]
-      ["#QXW2v5" (parse-list-v5 lines)])))
+      ["#QXW2v5" (parse-list-v5 lines)]
+      [_ #f])))

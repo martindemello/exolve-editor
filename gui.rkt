@@ -1,5 +1,7 @@
 #lang racket/gui
 
+(require racket/path)
+
 (require "exolve.rkt")
 (require "qxw.rkt")
 
@@ -9,7 +11,9 @@
     "Click 'Load QXW' to load a qxw file. The file will be converted to exolve."
     "After that, you can 'Copy to clipboard' to copy the generated exolve text,"
     "and paste it into your html file, or 'Load exolve template' followed by "
-    "'Save exolve' to merge your crossword into an exolve html file.")
+    "'Save exolve' to merge your crossword into an exolve html file."
+    "\n\nThe exolve template is the exolve.html or exolve-m.html file that"
+    "ships with exolve; download it from https://github.com/viresh-ratnakar/exolve")
    " "))
 
 (define courier-face
@@ -63,7 +67,7 @@
 
     (define text-panes
       (new horizontal-panel% [parent frame]
-                             [min-height 600]))
+           [min-height 600]))
 
     (define xword-canvas (new editor-canvas% [parent text-panes]))
     (define xword-text (new text%))
@@ -75,27 +79,52 @@
     (send template-canvas set-editor template-text)
     (send template-text change-style courier-face)
 
+    (define statusbar
+      (new horizontal-panel% [parent frame] [stretchable-height #f]))
+    (define status (new message% [parent statusbar] [label ""]))
+    (define spacer (new grow-box-spacer-pane% [parent statusbar]))
+
     (send frame show #t)
 
     (super-new)
 
+    (define (set-status msg . rst)
+      (send status set-label (string-join (append (list msg) rst) "")))
+
     (define (load-qxw-file)
-      (let* [(fname (get-file))
-             (text (exolve:format-xw (qxw:parse-file fname)))]
-        (replace-text xword-text text)))
+      (let [(fname (get-file))]
+        (if fname
+            (let [(f (some-system-path->string fname))
+                  (xw (qxw:parse-file fname))]
+              (if xw
+                  (let [(text (exolve:format-xw xw))]
+                    (if text
+                        (begin
+                          (replace-text xword-text text)
+                          (set-status "Loaded file " f))
+                        (set-status "Error reading file " f)))
+                  (set-status "Error reading file " f)))
+            (set-status "File not loaded"))))
 
     (define (load-exolve-file)
-      (let* [(fname (get-file))
-             (text (file->string fname))]
-        (replace-text template-text text)))
+      (let [(fname (get-file))]
+        (if fname
+            (let [(text (file->string fname))]
+              (replace-text template-text text)
+              (set-status "Loaded file " (some-system-path->string fname)))
+            (set-status "File not loaded"))))
 
     (define (save-exolve-m-file)
       (let* [(fname (put-file))
              (text (send xword-text get-text))
              (template (send template-text get-text))
              (out (exolve:merge template text))]
-        (with-output-to-file fname
-          (thunk (display out)))))
+        (if fname
+            (begin
+              (with-output-to-file fname #:exists 'replace
+                (thunk (display out)))
+              (set-status "Saved file " (some-system-path->string fname)))
+            (set-status "File not saved"))))
 
     (define (copy-to-clipboard event)
       (send the-clipboard set-clipboard-string
