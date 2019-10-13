@@ -8,6 +8,11 @@
     (send delta set-face "Courier")
     delta))
 
+(define (replace-text editor text)
+  (send editor select-all)
+  (send editor clear)
+  (send editor insert text))
+
 (define application%
   (class object%
     (define frame (new frame% [label "Exolve Editor"]))
@@ -54,14 +59,12 @@
     (define (load-qxw-file)
       (let* [(fname (get-file))
 	     (text (exolve:format-xw (qxw:parse-file fname)))]
-	(send xword-text delete)
-	(send xword-text insert text)))
+	(replace-text xword-text text)))
     
     (define (load-exolve-file)
       (let* [(fname (get-file))
 	     (text (file->string fname))]
-	(send template-text delete)
-	(send template-text insert text)))
+	(replace-text template-text text)))
 
     (define (save-exolve-m-file)
       (let* [(fname (put-file))

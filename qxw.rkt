@@ -4,9 +4,10 @@
 
 (provide (prefix-out qxw: parse-file))
 
-(define (parse-list lines)
-  (let* [(xw #f)
-         (s string->number)]
+(define s string->number)
+
+(define (parse-list-v3 lines)
+  (let [(xw #f)]
     (for [(line lines)]
       (match (string-split line)
         [(list "GP" "0" w h _ _ _) (set! xw (make-xword (s w) (s h)))]
@@ -16,5 +17,25 @@
         [_ #f]))
     xw))
 
+
+(define (parse-list-v5 lines)
+  (let [(xw #f)]
+    (for [(line lines)]
+      (match (string-split line)
+        [(list "GP" "0" w h _ _ _) (set! xw (make-xword (s w) (s h)))]
+        [(list "SQCT" col row "0" c)
+         (let [(col (s col))
+               (row (s row))
+               (c (string-trim c "\""))]
+           (match c
+             ["." (set-square xw col row ".")]
+             ["" (set-square xw col row "0")]
+             [c (set-square xw col row c)]))]
+        [_ #f]))
+    xw))
+
 (define (parse-file f)
-  (parse-list (file->lines f)))
+  (let [(lines (file->lines f))]
+    (match (first (string-split (first lines)))
+      ["#QXW2v3" (parse-list-v3 lines)]
+      ["#QXW2v5" (parse-list-v5 lines)])))
