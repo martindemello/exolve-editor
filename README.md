@@ -12,9 +12,11 @@ Loaded qxw files are converted to exolve format and merged into `exolve.html`. (
 * Make sure racket is in your path (you will need to run the `gracket` or `Gracket.exe` executable)
 * Clone this repository and run the editor:
 
+```
     $ git clone https://github.com/martindemello/exolve-editor.git
     $ cd exolve-editor
     $ gracket exolve-editor.rkt
+```
 
 ### Windows
 
