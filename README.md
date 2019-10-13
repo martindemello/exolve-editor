@@ -4,6 +4,30 @@ A simple text editor to import [qxw](https://www.quinapalus.com/qxw.html) files 
 
 Loaded qxw files are converted to exolve format and merged into `exolve.html`. (`exolve.html` needs to be downloaded separately.)
 
+## Download
+
+### All platforms
+
+* Install [racket](https://download.racket-lang.org/)
+* Make sure racket is in your path (you will need to run the `gracket` or `Gracket.exe` executable)
+* Clone this repository and run the editor:
+
+    $ git clone https://github.com/martindemello/exolve-editor.git
+    $ cd exolve-editor
+    $ gracket exolve-editor.rkt
+
+### Windows
+
+There is a windows binary under the
+[releases](https://github.com/martindemello/exolve-editor/releases) page.
+Download the latest `exolve-editor.zip` and you should get a folder with an
+executable.
+
+### Other platforms
+
+If anyone would like a linux binary, open an issue for it and I'll add one. I
+would also welcome volunteers to package and upload mac binaries.
+
 ## Usage
 
 1. Click `Load QXW` to load a qxw file. The grid will be converted to exolve,
