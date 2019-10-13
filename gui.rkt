@@ -62,7 +62,8 @@
             [callback (λ (b e) (quit-app))])))
 
     (define text-panes
-      (new horizontal-panel% [parent frame]))
+      (new horizontal-panel% [parent frame]
+                             [min-height 600]))
 
     (define xword-canvas (new editor-canvas% [parent text-panes]))
     (define xword-text (new text%))
@@ -104,8 +105,8 @@
     (define (help-dialog)
       (define d (new dialog% [parent frame]
                      [label "Help"]
-                     [width 600]
-                     [height 400]
+                     [width 800]
+                     [height 600]
                      [stretchable-width #t]
                      [stretchable-height #t]))
       (define h (new help-dialog% [parent d]))
