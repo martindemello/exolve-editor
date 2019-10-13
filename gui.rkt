@@ -81,7 +81,7 @@
 
     (define statusbar
       (new horizontal-panel% [parent frame] [stretchable-height #f]))
-    (define status (new message% [parent statusbar] [label ""]))
+    (define status (new message% [parent statusbar] [label "Welcome to exolve editor"]))
     (define spacer (new grow-box-spacer-pane% [parent statusbar]))
 
     (send frame show #t)
