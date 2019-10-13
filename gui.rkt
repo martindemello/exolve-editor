@@ -5,6 +5,8 @@
 (require "exolve.rkt")
 (require "qxw.rkt")
 
+(provide application%)
+
 (define *help*
   (string-join
    (list
@@ -142,5 +144,3 @@
       (send d show #t))
 
     (define (quit-app) (exit))))
-
-(define _ (new application%))
