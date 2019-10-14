@@ -57,7 +57,7 @@
                   (format 2 (headers xw))
                   (format 2 "exolve-prelude:")
                   (format 4 '("Replace with your prelude" "indented like this"))
-                  (format 2 "exolve-xw:")
+                  (format 2 "exolve-grid:")
                   (format 4 (grid->lines (xword-grid xw)))
                   (format 2 "exolve-across:")
                   (format 4 (reverse ac))
