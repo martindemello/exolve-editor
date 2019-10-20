@@ -4,7 +4,7 @@
 (require "qxw.rkt")
 
 (provide (prefix-out exolve:
-                     (combine-out merge format-xw)))
+                     (combine-out merge extract parse format-xw)))
 
 (define *start-marker* "======REPLACE WITH YOUR PUZZLE BELOW======")
 (define *end-marker* "======REPLACE WITH YOUR PUZZLE ABOVE======")
@@ -72,3 +72,48 @@
          (suffix (takef-right lines (λ (l) (not (equal? l *end-marker*)))))
          (replacement (list *start-marker* xword *end-marker*))]
     (unlines (append prefix replacement suffix))))
+
+(define (extract template)
+  (let* [(lines (string-split template "\n"))
+         (drop-prefix (dropf lines (λ (l) (not (equal? l *start-marker*)))))
+         (xword (takef drop-prefix (λ (l) (not (equal? l *end-marker*)))))         ]
+    (unlines (rest xword))))
+
+(define (add-val h k v)
+  (hash-set! h k (cons v (hash-ref h k '()))))
+
+(define (parse-to-dict f)
+  (let* [(dict (make-hash))
+         (key #f)
+         (add-line (λ (k v) (add-val dict k v)))
+         (header-rx #px"exolve-begin|exolve-end|exolve-(.*):\\s*(.*)")]
+    (for [(line (string-split f "\n"))]
+      (let [(line (string-trim line))]
+        (match (regexp-match header-rx line)
+          [(list _ #f #f) #f] ; exolve-{begin,end}
+          [(list _ k "") (set! key k)]
+          [(list _ k v) (begin (set! key k) (hash-set! dict k v))]
+          [#f (add-line key line)])))
+    (make-hash
+     (hash-map dict (λ (k v)
+                      (cons k (if (list? v) (reverse v) v)))))))
+
+(define (parse-dict dict)
+  (let* [(h (λ (k) (hash-ref dict k)))
+         (s string->number)
+         (cols (h "width"))
+         (rows (h "height"))
+         (grid (h "grid"))
+         (xw (make-xword (s cols) (s rows)))]
+    (for [(line grid)
+          (row (in-naturals))]
+      (for [(c line)
+            (col (in-naturals))]
+        (match c
+          [#\. (set-square xw col row ".")]
+          [#\space (set-square xw col row "0")]
+          [c (set-square xw col row (string c))])))
+    xw))
+
+(define (parse f)
+  (parse-dict (parse-to-dict f)))

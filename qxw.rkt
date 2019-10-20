@@ -2,7 +2,7 @@
 
 (require "xword.rkt")
 
-(provide (prefix-out qxw: parse-file))
+(provide (prefix-out qxw: parse))
 
 (define s string->number)
 
@@ -33,8 +33,8 @@
         [_ #f]))
     xw))
 
-(define (parse-file f)
-  (let [(lines (file->lines f))]
+(define (parse f)
+  (let [(lines (string-split f "\n"))]
     (match (first (string-split (first lines)))
       ["#QXW2v3" (parse-list-v3 lines)]
       ["#QXW2v5" (parse-list-v5 lines)]

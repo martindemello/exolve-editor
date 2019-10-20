@@ -23,11 +23,6 @@
     (send delta set-face "Courier")
     delta))
 
-(define (replace-text editor text)
-  (send editor select-all)
-  (send editor clear)
-  (send editor insert text))
-
 (define help-dialog%
   (class object%
     (init-field parent)
@@ -38,48 +33,82 @@
     (send help-text lock #t)
     (super-new)))
 
+
+(define copyable-editor%
+  (class object%
+    (init-field parent)
+    (super-new)
+    (define panel (new vertical-panel% [parent parent]
+                       [style '(border)]))
+    (define toolbar (new horizontal-panel% [parent panel]
+                         [stretchable-height #f]
+                         [alignment '(right center)]))
+    (define canvas (new editor-canvas% [parent panel]))
+    (define editor (new text%))
+    (send canvas set-editor editor)
+    (send editor change-style courier-face)
+
+    (define copy-button
+      (new button% [parent toolbar]
+           [label "Copy to clipboard"]
+           [callback (λ (b e) (copy-to-clipboard e))]))
+
+    (define (copy-to-clipboard event)
+      (send the-clipboard set-clipboard-string
+            (send editor get-text)
+            (send event get-time-stamp)))
+
+    (define/public (get-text)
+      (send editor get-text))
+
+    (define/public (replace-text text)
+      (send editor select-all)
+      (send editor clear)
+      (send editor insert text))))
+
 (define application%
   (class object%
     (define frame (new frame% [label "Exolve Editor"]))
 
-    (define toolbar
+    (define toolbar1
       (new horizontal-panel% [parent frame] [stretchable-height #f]))
 
-    ; Make a button in the frame
-    (define buttons
+    (define toolbar2
+      (new horizontal-panel% [parent frame] [stretchable-height #f]))
+
+    (define buttons1
       (list
-       (new button% [parent toolbar]
+       (new button% [parent toolbar1]
             [label "Load QXW"]
             [callback (λ (b e) (load-qxw-file))])
-       (new button% [parent toolbar]
-            [label "Copy to clipboard"]
-            [callback (λ (b e) (copy-to-clipboard e))])
-       (new button% [parent toolbar]
+       (new button% [parent toolbar1]
+            [label "Load Exolve"]
+            [callback (λ (b e) (load-exolve-grid))])
+       (new button% [parent toolbar1]
             [label "Load Exolve template"]
             [callback (λ (b e) (load-exolve-file))])
-       (new button% [parent toolbar]
-            [label "Save Exolve"]
-            [callback (λ (b e) (save-exolve-m-file))])
-       (new button% [parent toolbar]
+       (new button% [parent toolbar1]
             [label "Help"]
             [callback (λ (b e) (help-dialog))])
-       (new button% [parent toolbar]
+       (new button% [parent toolbar1]
             [label "Quit"]
             [callback (λ (b e) (quit-app))])))
+
+    (define buttons2
+      (list
+       (new button% [parent toolbar2]
+            [label "Save Exolve"]
+            [callback (λ (b e) (save-exolve-m-file))])
+       (new button% [parent toolbar2]
+            [label "Save Reddit"]
+            [callback (λ (b e) (save-exolve-m-file))])))
 
     (define text-panes
       (new horizontal-panel% [parent frame]
            [min-height 600]))
 
-    (define xword-canvas (new editor-canvas% [parent text-panes]))
-    (define xword-text (new text%))
-    (send xword-canvas set-editor xword-text)
-    (send xword-text change-style courier-face)
-
-    (define template-canvas (new editor-canvas% [parent text-panes]))
-    (define template-text (new text%))
-    (send template-canvas set-editor template-text)
-    (send template-text change-style courier-face)
+    (define xword (new copyable-editor% [parent text-panes]))
+    (define template (new copyable-editor% [parent text-panes]))
 
     (define statusbar
       (new horizontal-panel% [parent frame] [stretchable-height #f]))
@@ -93,33 +122,40 @@
     (define (set-status msg . rst)
       (send status set-label (string-join (append (list msg) rst) "")))
 
-    (define (load-qxw-file)
+    (define (load-and-parse-file textbox parse format)
       (let [(fname (get-file))]
         (if fname
-            (let [(f (some-system-path->string fname))
-                  (xw (qxw:parse-file fname))]
+            (let* [(f (some-system-path->string fname))
+                   (contents (file->string fname))
+                   (xw (parse contents))]
               (if xw
-                  (let [(text (exolve:format-xw xw))]
+                  (let [(text (format xw))]
                     (if text
                         (begin
-                          (replace-text xword-text text)
+                          (send textbox replace-text text)
                           (set-status "Loaded file " f))
                         (set-status "Error reading file " f)))
                   (set-status "Error reading file " f)))
             (set-status "File not loaded"))))
 
+    (define (load-qxw-file)
+      (load-and-parse-file xword qxw:parse exolve:format-xw))
+
+    (define (load-exolve-grid)
+      (load-and-parse-file xword exolve:extract identity))
+
     (define (load-exolve-file)
       (let [(fname (get-file))]
         (if fname
             (let [(text (file->string fname))]
-              (replace-text template-text text)
+              (send template replace-text text)
               (set-status "Loaded file " (some-system-path->string fname)))
             (set-status "File not loaded"))))
 
     (define (save-exolve-m-file)
       (let* [(fname (put-file))
-             (text (send xword-text get-text))
-             (template (send template-text get-text))
+             (text (send xword get-text))
+             (template (send template get-text))
              (out (exolve:merge template text))]
         (if fname
             (begin
@@ -127,11 +163,6 @@
                 (thunk (display out)))
               (set-status "Saved file " (some-system-path->string fname)))
             (set-status "File not saved"))))
-
-    (define (copy-to-clipboard event)
-      (send the-clipboard set-clipboard-string
-            (send xword-text get-text)
-            (send event get-time-stamp)))
 
     (define (help-dialog)
       (define d (new dialog% [parent frame]
