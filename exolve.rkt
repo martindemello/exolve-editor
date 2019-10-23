@@ -4,7 +4,7 @@
 (require "qxw.rkt")
 
 (provide (prefix-out exolve:
-                     (combine-out merge extract parse format-xw)))
+                     (combine-out merge extract-xw parse format-xw)))
 
 (define *start-marker* "======REPLACE WITH YOUR PUZZLE BELOW======")
 (define *end-marker* "======REPLACE WITH YOUR PUZZLE ABOVE======")
@@ -46,25 +46,23 @@
         [else (list (indent ind line-or-lines))]))
 
 (define (format-xw xw)
-  (let [(ac '())
-        (dn '())
-        (fmt (λ (fn i j n) (format-light (fn xw i j) n)))]
-    (renumber xw
-              #:on-ac (λ (i j n) (set! ac (cons (fmt word-ac+ i j n) ac)))
-              #:on-dn (λ (i j n) (set! dn (cons (fmt word-dn+ i j n) dn))))   
-    (let [(lines (append
-                  (format 0 "exolve-begin")
-                  (format 2 (headers xw))
-                  (format 2 "exolve-prelude:")
-                  (format 4 '("Replace with your prelude" "indented like this"))
-                  (format 2 "exolve-grid:")
-                  (format 4 (grid->lines (xword-grid xw)))
-                  (format 2 "exolve-across:")
-                  (format 4 (reverse ac))
-                  (format 2 "exolve-down:")
-                  (format 4 (reverse dn))
-                  (format 0 "exolve-end")))]
-      (unlines lines))))
+  (let* [(data (xword-data xw))
+         (ac (hash-ref data 'clues-across '()))
+         (dn (hash-ref data 'clues-down '()))]
+    (unlines
+     (append
+      (format 0 "exolve-begin")
+      (format 2 (headers xw))
+      (format 2 "exolve-prelude:")
+      (format 4 '("Replace with your prelude"
+                  "indented like this"))
+      (format 2 "exolve-grid:")
+      (format 4 (grid->lines (xword-grid xw)))
+      (format 2 "exolve-across:")
+      (format 4 ac)
+      (format 2 "exolve-down:")
+      (format 4 dn)
+      (format 0 "exolve-end")))))
 
 (define (merge template xword)
   (let* [(lines (string-split template "\n"))
@@ -73,8 +71,8 @@
          (replacement (list *start-marker* xword *end-marker*))]
     (unlines (append prefix replacement suffix))))
 
-(define (extract template)
-  (let* [(lines (string-split template "\n"))
+(define (extract-xw html)
+  (let* [(lines (string-split html "\n"))
          (drop-prefix (dropf lines (λ (l) (not (equal? l *start-marker*)))))
          (xword (takef drop-prefix (λ (l) (not (equal? l *end-marker*)))))         ]
     (unlines (rest xword))))
@@ -104,6 +102,8 @@
          (cols (h "width"))
          (rows (h "height"))
          (grid (h "grid"))
+         (ac (h "across"))
+         (dn (h "down"))
          (xw (make-xword (s cols) (s rows)))]
     (for [(line grid)
           (row (in-naturals))]
@@ -113,7 +113,10 @@
           [#\. (set-square xw col row ".")]
           [#\space (set-square xw col row "0")]
           [c (set-square xw col row (string c))])))
+    (let [(data (xword-data xw))]
+      (hash-set! data 'clues-across ac)
+      (hash-set! data 'clues-down dn))
     xw))
 
 (define (parse f)
-  (parse-dict (parse-to-dict f)))
+  (parse-dict (parse-to-dict (extract-xw f))))

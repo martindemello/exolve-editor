@@ -33,10 +33,20 @@
     (send help-text lock #t)
     (super-new)))
 
+(define (make-editor)
+  (let [(editor (new text%))]
+    (send editor change-style courier-face)
+    editor))
+
+(define (replace-text editor text)
+  (send editor select-all)
+  (send editor clear)
+  (send editor insert text))
 
 (define copyable-editor%
   (class object%
     (init-field parent)
+    (init-field editor)
     (super-new)
     (define panel (new vertical-panel% [parent parent]
                        [style '(border)]))
@@ -44,9 +54,11 @@
                          [stretchable-height #f]
                          [alignment '(right center)]))
     (define canvas (new editor-canvas% [parent panel]))
-    (define editor (new text%))
     (send canvas set-editor editor)
-    (send editor change-style courier-face)
+
+    (define/public (set-editor e)
+      (set! editor e)
+      (send canvas set-editor e))
 
     (define copy-button
       (new button% [parent toolbar]
@@ -54,17 +66,9 @@
            [callback (λ (b e) (copy-to-clipboard e))]))
 
     (define (copy-to-clipboard event)
-      (send the-clipboard set-clipboard-string
+      (send the-clipboard set-clipboar-string
             (send editor get-text)
-            (send event get-time-stamp)))
-
-    (define/public (get-text)
-      (send editor get-text))
-
-    (define/public (replace-text text)
-      (send editor select-all)
-      (send editor clear)
-      (send editor insert text))))
+            (send event get-time-stamp)))))
 
 (define application%
   (class object%
@@ -98,17 +102,27 @@
       (list
        (new button% [parent toolbar2]
             [label "Save Exolve"]
-            [callback (λ (b e) (save-exolve-m-file))])
-       (new button% [parent toolbar2]
-            [label "Save Reddit"]
             [callback (λ (b e) (save-exolve-m-file))])))
 
     (define text-panes
-      (new horizontal-panel% [parent frame]
-           [min-height 600]))
+      (new tab-panel% [parent frame]
+           [choices (list "Crossword" "Template" "Output")]
+           [min-height 600]
+           [callback
+            (λ (tp event)
+              (let [(editor
+                     (case (send tp get-item-label (send tp get-selection))
+                       [("Crossword") xword]
+                       [("Template") template]
+                       [("Output") output]))]
+                (send editor-view set-editor editor)))]))
 
-    (define xword (new copyable-editor% [parent text-panes]))
-    (define template (new copyable-editor% [parent text-panes]))
+    (define xword (make-editor))
+    (define template (make-editor))
+    (define output (make-editor))
+
+    (define editor-view (new copyable-editor% [parent text-panes]
+                             [editor xword]))
 
     (define statusbar
       (new horizontal-panel% [parent frame] [stretchable-height #f]))
@@ -132,7 +146,7 @@
                   (let [(text (format xw))]
                     (if text
                         (begin
-                          (send textbox replace-text text)
+                          (replace-text textbox text)
                           (set-status "Loaded file " f))
                         (set-status "Error reading file " f)))
                   (set-status "Error reading file " f)))
@@ -142,15 +156,10 @@
       (load-and-parse-file xword qxw:parse exolve:format-xw))
 
     (define (load-exolve-grid)
-      (load-and-parse-file xword exolve:extract identity))
+      (load-and-parse-file xword exolve:extract-xw identity))
 
     (define (load-exolve-file)
-      (let [(fname (get-file))]
-        (if fname
-            (let [(text (file->string fname))]
-              (send template replace-text text)
-              (set-status "Loaded file " (some-system-path->string fname)))
-            (set-status "File not loaded"))))
+      (load-and-parse-file template identity identity))
 
     (define (save-exolve-m-file)
       (let* [(fname (put-file))
