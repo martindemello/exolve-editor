@@ -23,7 +23,7 @@
   (let* [(grid (make-grid rows cols))
          (nums (make-grid rows cols))
          (data (make-hash))]      
-    (xword rows cols grid nums data))
+    (xword rows cols grid nums data)))
           
   (define (-- x) (- x 1))
   (define (++ x) (+ x 1))

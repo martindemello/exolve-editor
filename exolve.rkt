@@ -4,10 +4,25 @@
 (require "qxw.rkt")
 
 (provide (prefix-out exolve:
-                     (combine-out merge extract-xw parse format-xw)))
+                     (combine-out merge extract-xw parse format-sections format-xw)))
 
 (define *start-marker* "======REPLACE WITH YOUR PUZZLE BELOW======")
 (define *end-marker* "======REPLACE WITH YOUR PUZZLE ABOVE======")
+
+(define *sections* '(id title setter copyright prelude width height grid
+                        across down nodir explanations nina colour question
+                        submit option))
+
+; keys treated specially by the code
+(define *special-keys* (list->set '(width height grid across down)))
+
+(define *defaults*
+  (make-hash (list
+              '(id . "unique-id")
+              '(title . "Title")
+              '(setter . "Setter")
+              '(copyright . "year Name")
+              '('prelude "Replace with your prelude" "indented like this"))))
 
 (define (indent n str)
   (string-append (build-string n (λ (_) #\space)) str))
@@ -21,29 +36,36 @@
 (define (grid->lines grid)
   (vector->list (vector-map row->str grid)))
 
-(define (headers xw)
-  (let* [(rows (number->string (xword-rows xw)))
-         (cols (number->string (xword-cols xw)))
-         (headers (list
-                   '("id" "unique-id")
-                   '("title" "Title")
-                   '("setter" "Setter")
-                   `("width" ,cols)
-                   `("height" ,rows)
-                   `("copyright" "year Name")))]
-    (map (λ (k-v) (string-append "exolve-" (first k-v) ": " (second k-v)))
-         headers)))
+(define (format-key k)
+  (format "exolve-~a:" k))
 
-(define (format-light cells n)
-  (let [(word (string-join cells ""))
-        (num (number->string n))
-        (enum (number->string (length cells)))]
-    (string-append num ". " word " (" enum ") Annotation")))
+(define (indent-lines ind v)
+  (map (λ (line) (indent ind line)) v))
 
-(define (format ind line-or-lines)
-  (cond [(list? line-or-lines) (map (λ (line) (indent ind line))
-                                    line-or-lines)]
-        [else (list (indent ind line-or-lines))]))
+(define (format-kv k v)
+  (let [(k (format-key k))]
+    (cond [(list? v) (append (list (indent 2 k))
+                             (indent-lines 4 v))]
+          [else (list (indent 2 (format "~a ~a" k v)))])))
+
+(define (get-value xw k)
+  (let* [(data (xword-data xw))]
+    (match k
+      ['width (number->string (xword-cols xw))]
+      ['height (number->string (xword-rows xw))]
+      ['across (hash-ref data 'clues-across #f)]
+      ['down (hash-ref data 'clues-down #f)]
+      ['grid (grid->lines (xword-grid xw))]
+      [_ (hash-ref data k (hash-ref *defaults* k #f))])))
+
+(define (format-sections xw)
+  (apply append
+         (for/list [(k *sections*)]
+           (let [(v (get-value xw k))]
+             (cond
+               [(list? v) (format-kv k v)]
+               [(false? v) '()]
+               ['else (format-kv k v)])))))
 
 (define (format-xw xw)
   (let* [(data (xword-data xw))
@@ -51,18 +73,9 @@
          (dn (hash-ref data 'clues-down '()))]
     (unlines
      (append
-      (format 0 "exolve-begin")
-      (format 2 (headers xw))
-      (format 2 "exolve-prelude:")
-      (format 4 '("Replace with your prelude"
-                  "indented like this"))
-      (format 2 "exolve-grid:")
-      (format 4 (grid->lines (xword-grid xw)))
-      (format 2 "exolve-across:")
-      (format 4 ac)
-      (format 2 "exolve-down:")
-      (format 4 dn)
-      (format 0 "exolve-end")))))
+      '("exolve-begin")
+      (format-sections xw)
+      '("exolve-end")))))
 
 (define (merge template xword)
   (let* [(lines (string-split template "\n"))
@@ -94,16 +107,15 @@
           [#f (add-line key line)])))
     (make-hash
      (hash-map dict (λ (k v)
-                      (cons k (if (list? v) (reverse v) v)))))))
+                      (cons (string->symbol k)
+                            (if (list? v) (reverse v) v)))))))
 
 (define (parse-dict dict)
   (let* [(h (λ (k) (hash-ref dict k)))
          (s string->number)
-         (cols (h "width"))
-         (rows (h "height"))
-         (grid (h "grid"))
-         (ac (h "across"))
-         (dn (h "down"))
+         (cols (h 'width))
+         (rows (h 'height))
+         (grid (h 'grid))
          (xw (make-xword (s cols) (s rows)))]
     (for [(line grid)
           (row (in-naturals))]
@@ -114,8 +126,11 @@
           [#\space (set-square xw col row "0")]
           [c (set-square xw col row (string c))])))
     (let [(data (xword-data xw))]
-      (hash-set! data 'clues-across ac)
-      (hash-set! data 'clues-down dn))
+      (hash-set! data 'clues-across (h 'across))
+      (hash-set! data 'clues-down (h 'down))
+      (hash-for-each dict (λ (k v)
+                            (or (set-member? *special-keys* k)
+                                (hash-set! data k v)))))
     xw))
 
 (define (parse f)
