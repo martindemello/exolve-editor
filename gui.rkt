@@ -47,6 +47,7 @@
   (class object%
     (init-field parent)
     (init-field editor)
+    (init-field application)
     (super-new)
     (define panel (new vertical-panel% [parent parent]
                        [style '(border)]))
@@ -55,6 +56,9 @@
                          [alignment '(right center)]))
     (define canvas (new editor-canvas% [parent panel]))
     (send canvas set-editor editor)
+
+    (define (set-status . args)
+      (send/apply application set-status args))
 
     (define/public (set-editor e)
       (set! editor e)
@@ -65,10 +69,27 @@
            [label "Copy to clipboard"]
            [callback (λ (b e) (copy-to-clipboard e))]))
 
+    (define save-button
+      (new button% [parent toolbar]
+           [label "Save as"]
+           [callback (λ (b e) (save-to-file))]))
+
     (define (copy-to-clipboard event)
-      (send the-clipboard set-clipboar-string
+      (send the-clipboard set-clipboard-string
             (send editor get-text)
-            (send event get-time-stamp)))))
+            (send event get-time-stamp)))
+
+    (define (save-to-file)
+      (let* [(fname (put-file))
+             (text (send editor get-text))]
+        (if fname
+            (begin
+              (with-output-to-file fname #:exists 'replace
+                (thunk (display text)))
+              (set-status "Saved file " (some-system-path->string fname)))
+            (set-status "File not saved"))))
+
+    ))
 
 (define application%
   (class object%
@@ -121,8 +142,10 @@
     (define template (make-editor))
     (define output (make-editor))
 
-    (define editor-view (new copyable-editor% [parent text-panes]
-                             [editor xword]))
+    (define editor-view (new copyable-editor%
+			     [parent text-panes]
+                             [editor xword]
+			     [application this]))
 
     (define statusbar
       (new horizontal-panel% [parent frame] [stretchable-height #f]))
@@ -133,7 +156,7 @@
 
     (super-new)
 
-    (define (set-status msg . rst)
+    (define/public (set-status msg . rst)
       (send status set-label (string-join (append (list msg) rst) "")))
 
     (define (load-and-parse-file textbox parse format)
