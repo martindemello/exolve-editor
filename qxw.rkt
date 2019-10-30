@@ -38,9 +38,10 @@
          (xw (match (first (string-split (first lines)))
                ["#QXW2v3" (parse-list-v3 lines)]
                ["#QXW2v5" (parse-list-v5 lines)]
-               [_ #f]))
-         (data (xword-data xw))]
-    (let-values [((ac dn) (extract-words xw))]
-      (hash-set! data 'clues-across ac)
-      (hash-set! data 'clues-down dn))
-    xw))
+               [_ #f]))]
+    (and xw
+         (let [(data (xword-data xw))]
+           (let-values [((ac dn) (extract-words xw))]
+             (hash-set! data 'clues-across ac)
+             (hash-set! data 'clues-down dn))
+           xw))))

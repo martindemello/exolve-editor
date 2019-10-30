@@ -2,8 +2,12 @@
 
 (require racket/path)
 
+(require data/monad)
+(require data/either)
+
 (require "exolve.rkt")
 (require "qxw.rkt")
+(require "functional.rkt")
 
 (provide application%)
 
@@ -43,6 +47,13 @@
   (send editor clear)
   (send editor insert text))
 
+(define (save-text-to-file text)
+  (let* [(fname (put-file))]
+    (and fname
+         (with-output-to-file fname #:exists 'replace
+           (thunk (display text))))
+    fname))
+
 (define copyable-editor%
   (class object%
     (init-field parent)
@@ -80,16 +91,11 @@
             (send event get-time-stamp)))
 
     (define (save-to-file)
-      (let* [(fname (put-file))
-             (text (send editor get-text))]
+      (let* [(text (send editor get-text))
+             (fname (save-text-to-file text))]
         (if fname
-            (begin
-              (with-output-to-file fname #:exists 'replace
-                (thunk (display text)))
-              (set-status "Saved file " (some-system-path->string fname)))
-            (set-status "File not saved"))))
-
-    ))
+            (set-status "Saved file " (some-system-path->string fname))
+            (set-status "File not saved"))))))
 
 (define application%
   (class object%
@@ -143,9 +149,9 @@
     (define output (make-editor))
 
     (define editor-view (new copyable-editor%
-			     [parent text-panes]
+                             [parent text-panes]
                              [editor xword]
-			     [application this]))
+                             [application this]))
 
     (define statusbar
       (new horizontal-panel% [parent frame] [stretchable-height #f]))
@@ -159,41 +165,44 @@
     (define/public (set-status msg . rst)
       (send status set-label (string-join (append (list msg) rst) "")))
 
-    (define (load-and-parse-file textbox parse format)
-      (let [(fname (get-file))]
-        (if fname
-            (let* [(f (some-system-path->string fname))
-                   (contents (file->string fname))
-                   (xw (parse contents))]
-              (if xw
-                  (let [(text (format xw))]
-                    (if text
-                        (begin
-                          (replace-text textbox text)
-                          (set-status "Loaded file " f))
-                        (set-status "Error reading file " f)))
-                  (set-status "Error reading file " f)))
-            (set-status "File not loaded"))))
+    (define (error-string e)
+      (match e
+        ['format-error "Error formatting ~a"]
+        ['parse-error "Error parsing ~a"]
+        ['read-error "Error reading ~a"]
+        ['no-filename #f]))
+
+    (define (load-and-process-file textbox parse fmt)
+      (define f #f)
+      (let* [(text
+              (do [fname <- (try (get-file) 'no-filename)]
+                (define _ (set! f (some-system-path->string fname)))
+                [contents <- (try (file->string fname) 'read-error)]
+                [xw <- (try (parse contents) 'parse-error)]
+                (try (fmt xw) 'format-error)))
+             (status
+              (either error-string
+                      (λ (t) (begin (replace-text textbox t)
+                                    "Loaded file ~a"))
+                      text))]
+        (and status (set-status (format status f)))))
 
     (define (load-qxw-file)
-      (load-and-parse-file xword qxw:parse exolve:format-xw))
+      (load-and-process-file xword qxw:parse exolve:format-xw))
 
     (define (load-exolve-grid)
-      (load-and-parse-file xword exolve:extract-xw identity))
+      (load-and-process-file xword exolve:extract-xw identity))
 
     (define (load-exolve-file)
-      (load-and-parse-file template identity identity))
+      (load-and-process-file template identity identity))
 
     (define (save-exolve-m-file)
-      (let* [(fname (put-file))
-             (text (send xword get-text))
+      (let* [(text (send xword get-text))
              (template (send template get-text))
-             (out (exolve:merge template text))]
+             (out (exolve:merge template text))
+             (fname (save-text-to-file out))]
         (if fname
-            (begin
-              (with-output-to-file fname #:exists 'replace
-                (thunk (display out)))
-              (set-status "Saved file " (some-system-path->string fname)))
+            (set-status "Saved file " (some-system-path->string fname))
             (set-status "File not saved"))))
 
     (define (help-dialog)
