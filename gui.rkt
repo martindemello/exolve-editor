@@ -6,8 +6,9 @@
 (require data/either)
 
 (require "exolve.rkt")
-(require "qxw.rkt")
 (require "functional.rkt")
+(require "qxw.rkt")
+(require "reddit.rkt")
 
 (provide application%)
 
@@ -129,20 +130,29 @@
       (list
        (new button% [parent toolbar2]
             [label "Save Exolve"]
-            [callback (λ (b e) (save-exolve-m-file))])))
+            [callback (λ (b e) (save-exolve-m-file))])
+       (new button% [parent toolbar2]
+            [label "Output Reddit"]
+            [callback (λ (b e) (output-reddit))])))
 
     (define text-panes
       (new tab-panel% [parent frame]
            [choices (list "Crossword" "Template" "Output")]
            [min-height 600]
            [callback
-            (λ (tp event)
-              (let [(editor
-                     (case (send tp get-item-label (send tp get-selection))
-                       [("Crossword") xword]
-                       [("Template") template]
-                       [("Output") output]))]
-                (send editor-view set-editor editor)))]))
+            (λ (tp event) (set-selected-tab tp))]))
+
+    (define (set-selected-tab tp)
+      (let [(editor
+             (case (send tp get-item-label (send tp get-selection))
+               [("Crossword") xword]
+               [("Template") template]
+               [("Output") output]))]
+        (send editor-view set-editor editor)))
+
+    (define (set-tab n)
+      (send text-panes set-selection n)
+      (set-selected-tab text-panes))
 
     (define xword (make-editor))
     (define template (make-editor))
@@ -204,6 +214,13 @@
         (if fname
             (set-status "Saved file " (some-system-path->string fname))
             (set-status "File not saved"))))
+
+    (define (output-reddit)
+      (let* [(text (send xword get-text))
+             (xw (exolve:parse-xw text))
+             (out (reddit:format-xw xw))]
+        (replace-text output out)
+        (set-tab 2)))
 
     (define (help-dialog)
       (define d (new dialog% [parent frame]

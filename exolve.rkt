@@ -4,7 +4,7 @@
 (require "qxw.rkt")
 
 (provide (prefix-out exolve:
-                     (combine-out merge extract-xw parse format-sections format-xw)))
+                     (combine-out merge extract-xw parse-xw parse format-sections format-xw)))
 
 (define *start-marker* "======REPLACE WITH YOUR PUZZLE BELOW======")
 (define *end-marker* "======REPLACE WITH YOUR PUZZLE ABOVE======")
@@ -133,5 +133,8 @@
                                 (hash-set! data k v)))))
     xw))
 
+(define (parse-xw xw)
+  (parse-dict (parse-to-dict xw)))
+
 (define (parse f)
-  (parse-dict (parse-to-dict (extract-xw f))))
+  (parse-xw (extract-xw f)))
