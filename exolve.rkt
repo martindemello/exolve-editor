@@ -77,17 +77,42 @@
       (format-sections xw)
       '("exolve-end")))))
 
-(define (merge template xword)
+(define title-rx #px"<title>(.*)</title>")
+
+(define (find-title lines)
+  (index-where lines (λ (l) (regexp-match title-rx l))))
+
+(define (get-title lines)
+  (let [(ix (find-title lines))]
+    (if ix
+        (let* [(ttl (list-ref lines ix))
+               (m (regexp-match title-rx (first ttl)))]
+          (second m))
+        #f)))
+
+(define (set-title lines title)
+  (let [(ix (find-title lines))]
+    (if ix
+        (let* [(prefix (take lines ix))
+               (suffix (drop lines (+ ix 1)))
+               (ttl (format "<title>~a</title>" title))]
+          (append prefix (cons ttl suffix)))
+        lines)))
+
+(define (merge template xw)
   (let* [(lines (string-split template "\n"))
          (prefix (takef lines (λ (l) (not (equal? l *start-marker*)))))
          (suffix (takef-right lines (λ (l) (not (equal? l *end-marker*)))))
-         (replacement (list *start-marker* xword *end-marker*))]
-    (unlines (append prefix replacement suffix))))
+         (xword (format-xw xw))
+         (replacement (list *start-marker* xword *end-marker*))
+         (out (append prefix replacement suffix))
+         (title (get-data xw 'title))]
+    (unlines (if title (set-title out title) out))))
 
 (define (extract-xw html)
   (let* [(lines (string-split html "\n"))
          (drop-prefix (dropf lines (λ (l) (not (equal? l *start-marker*)))))
-         (xword (takef drop-prefix (λ (l) (not (equal? l *end-marker*)))))         ]
+         (xword (takef drop-prefix (λ (l) (not (equal? l *end-marker*)))))]
     (unlines (rest xword))))
 
 (define (add-val h k v)

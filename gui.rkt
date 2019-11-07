@@ -202,8 +202,9 @@
 
     (define (save-exolve-m-file)
       (let* [(text (send xword get-text))
+             (xw (exolve:parse-xw text))
              (template (send template get-text))
-             (out (exolve:merge template text))
+             (out (exolve:merge template xw))
              (fname (save-text-to-file out))]
         (if fname
             (set-status "Saved file " (some-system-path->string fname))

@@ -9,9 +9,14 @@
          extract-words
          letter
          number
+         get-data
          (struct-out xword))
 
 (struct xword (rows cols grid nums data))
+
+(define (get-data xword k)
+  (let [(data (xword-data xword))]
+    (and data (hash-ref data k #f))))
 
 (define (make-grid rows cols)
   (build-vector rows (lambda x (make-vector cols #f))))
