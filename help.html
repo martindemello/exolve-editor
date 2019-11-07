@@ -1,0 +1,62 @@
+<h1>Exolve Editor</h1>
+
+Exolve Editor, as the name suggests, is an editor for
+files used by the excellent <a href="https://github.com/viresh-ratnakar/exolve">Exolve interactive crossword player</a>.
+
+An exolve file consists of two parts:
+<ul>
+  <li>A <b>crossword</b>, defined in a structured text format (see the <a href="https://github.com/viresh-ratnakar/exolve">Exolve README</a> for details).</li>
+  <li>A <b>template</b>, one of two files that ship with
+    exolve, either <a
+      href="https://github.com/viresh-ratnakar/exolve/blob/master/exolve-m.html">exolve-m.html</a>
+    or <a
+      href="https://github.com/viresh-ratnakar/exolve/blob/master/exolve.html">exolve.html</a>.
+</ul>
+
+The crossword is merged into the template to create a standalone HTML file that can be loaded into your browser to solve the crossword interactively, or hosted on your website to present your readers with an interactive crossword.
+
+<h2>Crosswords</h2>
+To load a crossword, click
+<ul>
+  <li><b>Load Exolve</b>: Extracts the crossword from an existing exolve file. This is useful for, e.g., moving a crossword from an old exolve file and merging it with the latest version of the template.</li>
+  <li><b>Import QXW</b>: Loads a <a href="https://www.quinapalus.com/qxw.html">QXW save file</a> and converts it into exolve format</a>. Note that
+  <ul>
+    <li>Only the rectangular format is supported</li>
+    <li>Clues will be generated from the grid, in the form "1. ANSWER", since QXW is purely a grid creation app and does not support clues</li>
+  </ul>
+  You can add clues directly within this app, but it's probably more convenient to save the converted file and edit it in your favourite text editor.
+  </li>
+</ul>
+
+<h2>Templates</h2>
+Once your crossword is ready, it needs to be merged with
+an exolve template. Download either <a
+href="https://github.com/viresh-ratnakar/exolve/blob/master/exolve-m.html">exolve-m.html</a>
+or <a
+     href="https://github.com/viresh-ratnakar/exolve/blob/master/exolve.html">exolve.html</a>
+to your computer, then click <b>Load Exolve Template</b>
+to load it into the <b><i>Template</i></b> tab. (If you
+are not sure what the difference between the two files
+is, you probably want <tt>exolve.html</tt>.)
+
+<h2>Saving the completed file</h2>
+When you are read to save, click on <b>Save Exolve</b>. This will merge the contents of the <b><i>Crossword</i></b> and <b><i>Template</i></b> tabs and create an HTML file.
+
+To load a crossword, click
+<p>Click 'Load QXW' to load a qxw file. The file will be
+converted to exolve.  After that, you can 'Copy to
+clipboard' to copy the generated exolve text, and paste it
+into your html file, or 'Load exolve template' followed by
+'Save exolve' to merge your crossword into an exolve html
+file.</p>
+
+<h2>Exporting to other formats</h2>
+While this app is primarily focused on exolve files, the contents of the <b><i>Crossword</i></b> tab can be converted to other formats. Currently the only other supported format is the crossword markup used by <a href="https://www.reddit.com/r/crosswords/comments/reiym/new_markup_for_posting_crossowords/">the /r/crosswords subreddit</a>; <a href="https://github.com/martindemello/exolve-editor/issues">open an issue</a> if you would like some other export format, or see my <a href="https://github.com/martindemello/pangrid"><i>pangrid</i> command line tool</a> for a more general conversion utility.
+
+Clicking on <b>Output Reddit</b> will convert the current crossword to reddit markup format, and write it to the <b><i>Output</i></b> tab, where it can be copied or saved.
+
+<h2>Bugs and Feature Requests</h2>
+If something doesn't work, or you would like to request a
+feature, do <a
+href="https://github.com/martindemello/exolve-editor/issues">open
+an issue</a> on github.

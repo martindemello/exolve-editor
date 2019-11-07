@@ -1,9 +1,11 @@
 #lang racket/gui
 
 (require racket/path)
+(require browser/htmltext)
 
 (require data/monad)
 (require data/either)
+
 
 (require "exolve.rkt")
 (require "functional.rkt")
@@ -12,29 +14,21 @@
 
 (provide application%)
 
-(define *help*
-  (string-join
-   (list
-    "Click 'Load QXW' to load a qxw file. The file will be converted to exolve."
-    "After that, you can 'Copy to clipboard' to copy the generated exolve text,"
-    "and paste it into your html file, or 'Load exolve template' followed by "
-    "'Save exolve' to merge your crossword into an exolve html file."
-    "\n\nThe exolve template is the exolve.html or exolve-m.html file that"
-    "ships with exolve; download it from https://github.com/viresh-ratnakar/exolve")
-   " "))
-
 (define courier-face
   (let ([delta (new style-delta%)])
     (send delta set-face "Courier")
     delta))
 
+(define help-text%
+  (html-text-mixin text%))
+
 (define help-dialog%
   (class object%
     (init-field parent)
     (define help-canvas (new editor-canvas% [parent parent]))
-    (define help-text (new text% [auto-wrap #t]))
+    (define help-text (new help-text% [auto-wrap #t]))
     (send help-canvas set-editor help-text)
-    (send help-text insert *help*)
+    (call-with-input-file "help.html" (λ (in) (render-html-to-text in help-text #f #f)))
     (send help-text lock #t)
     (super-new)))
 
@@ -111,11 +105,11 @@
     (define buttons1
       (list
        (new button% [parent toolbar1]
-            [label "Load QXW"]
-            [callback (λ (b e) (load-qxw-file))])
-       (new button% [parent toolbar1]
             [label "Load Exolve"]
             [callback (λ (b e) (load-exolve-grid))])
+       (new button% [parent toolbar1]
+            [label "Import QXW"]
+            [callback (λ (b e) (load-qxw-file))])
        (new button% [parent toolbar1]
             [label "Load Exolve template"]
             [callback (λ (b e) (load-exolve-file))])
