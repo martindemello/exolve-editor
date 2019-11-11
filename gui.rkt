@@ -1,6 +1,7 @@
 #lang racket/gui
 
 (require racket/path)
+(require racket/runtime-path)
 (require browser/htmltext)
 
 (require data/monad)
@@ -11,6 +12,8 @@
 (require "functional.rkt")
 (require "qxw.rkt")
 (require "reddit.rkt")
+
+(define-runtime-path help-file "help.html")
 
 (provide application%)
 
@@ -28,7 +31,7 @@
     (define help-canvas (new editor-canvas% [parent parent]))
     (define help-text (new help-text% [auto-wrap #t]))
     (send help-canvas set-editor help-text)
-    (call-with-input-file "help.html" (λ (in) (render-html-to-text in help-text #f #f)))
+    (call-with-input-file help-file (λ (in) (render-html-to-text in help-text #f #f)))
     (send help-text lock #t)
     (super-new)))
 
