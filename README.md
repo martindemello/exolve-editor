@@ -10,11 +10,13 @@ Loaded qxw files are converted to exolve format and merged into `exolve.html`. (
 
 * Install [racket](https://download.racket-lang.org/)
 * Make sure racket is in your path (you will need to run the `gracket` or `Gracket.exe` executable)
+* Install the `functional-lib` package (this should be the only dependency, but you will get prompted for recursive dependencies).
 * Clone this repository and run the editor:
 
 ```
     $ git clone https://github.com/martindemello/exolve-editor.git
     $ cd exolve-editor
+    $ raco pkg install functional-lib
     $ gracket exolve-editor.rkt
 ```
 
